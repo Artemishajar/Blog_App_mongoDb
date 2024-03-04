@@ -5,12 +5,13 @@ const postrouter = require('./routes/postRouter.js');
 const loginRouter = require('./routes/loginRouter.js');
 const registerRouter = require('./routes/registerRouter.js');
 
-
+app.use(express.json());
+app.use(express.urlencoded())
 
 const mongoose = require("mongoose");
 
 const host = "localhost"
-const port =3000;
+const port ="3000";
 
 mongoose
     .connect("mongodb://localhost:27017/myposts")
@@ -20,13 +21,13 @@ mongoose
 
 
 
-app.use("/", postrouter);
 app.use("/login", loginRouter);
 app.use("/register", registerRouter);
 
+app.use("/", postrouter);
 
 
-app.use(express.json());
+
 
 
 

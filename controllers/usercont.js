@@ -1,15 +1,24 @@
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 const secret_key = "enji122u3u31g12tf21f31";
-async function login(req, res) {
+const bcrypt = require("bcrypt");
+const user = require("../models/user");
 
-  const user = await User.findOne({ email: req.body.email });
+//logging function and hashing password
+async function login(req, res) {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email: email });
 
   if (!user) {
     return res.status(400).send({ msg: "User not found" });
   }
 
-  const btoken = jwt.sign({ email: req.body.email }, secret_key, {
+  const ScryptedPassword = await bcrypt.compareSync(password, user.password);
+  if(!ScryptedPassword){
+    return res.status(400).send("Invalid password");
+  }
+
+  const btoken = jwt.sign({ email: email}, secret_key, {
     expiresIn: "2h",
   });
   let token = "Bearer " + btoken;
@@ -45,29 +54,41 @@ function registerPage(req, res) {
 }
 
 async function register(req, res) {
-  const error = validationResult(req);
-  if (!error.isEmpty()) {
-    return res.json(error.errors[0].msg);
+  
+  const { name, email, password } = req.body;
+  const userExists =await user.findOne({email: email});
+  if(userExists){
+   return res.status(400).send("email already used");
   }
-  const { name, email, age } = req.body;
-  const newUser = await new User({
-    name,
-    email,
-    age,
-  });
+  bcrypt.hash(password, 10, function(err, hash) {
+    if (err) {
+     
 
-  newUser
-    .save()
-    .then(() => {
-      const btoken = jwt.sign({ email: req.body.email }, secret_key, {
-        expiresIn: "2h",
+    return  res.status(400).send(err);
+    } else{
+
+   
+      const newUser = new User({
+        name,
+        email,
+        password: hash,
       });
-      let token = "Bearer " + btoken;
-      res.send(token);
-    })
-    .catch((err) => {
-      res.send(`email : ${email} already used`);
-    });
+
+      newUser
+        .save()
+        .then(() => {
+          const btoken = jwt.sign({ email: req.body.email }, secret_key, {
+            expiresIn: "2h",
+          });
+          let token = "Bearer " + btoken;
+          res.send(token);
+        })
+        .catch((err) => {
+          res.send(err.message);
+        });
+      }
+});
+
 }
 
 module.exports = { login, loginPage, register, registerPage };
